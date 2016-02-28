@@ -2681,7 +2681,7 @@ append_sqlite3_col_def (GString* ddl, GncSqlColumnInfo* info)
     {
         (void)g_string_append (ddl, " AUTOINCREMENT");
     }
-    if (!info->m_null_allowed)
+    if (info->m_not_null)
     {
         (void)g_string_append (ddl, " NOT NULL");
     }
@@ -2772,8 +2772,7 @@ append_mysql_col_def (GString* ddl, GncSqlColumnInfo* info)
     {
         (void)g_string_append (ddl, " AUTO_INCREMENT");
     }
-    if (!info->m_null_allowed)
-
+    if (info->m_not_null)
     {
         (void)g_string_append (ddl, " NOT NULL");
     }
@@ -2863,7 +2862,7 @@ append_pgsql_col_def (GString* ddl, GncSqlColumnInfo* info)
     {
         (void)g_string_append (ddl, " PRIMARY KEY");
     }
-    if (!info->m_null_allowed)
+    if (info->m_not_null)
     {
         (void)g_string_append (ddl, " NOT NULL");
     }
