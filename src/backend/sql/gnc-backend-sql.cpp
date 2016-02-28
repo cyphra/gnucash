@@ -1198,27 +1198,6 @@ gnc_sql_add_subtable_colnames_to_list (const GncSqlColumnTableEntry* table_row,
         (*pList) = g_list_append ((*pList), buf);
     }
 }
-
-static GncSqlColumnInfo*
-create_column_info (const GncSqlColumnTableEntry* table_row,
-                    GncSqlBasicColumnType type,
-                    gint size, gboolean is_unicode)
-{
-    GncSqlColumnInfo* info;
-
-    info = g_new0 (GncSqlColumnInfo, 1);
-    g_assert (info != NULL);
-    info->name = g_strdup (table_row->col_name);
-    info->type = type;
-    info->size = size;
-    info->is_primary_key = ((table_row->flags & COL_PKEY) != 0) ? TRUE : FALSE;
-    info->null_allowed = ((table_row->flags & COL_NNUL) != 0) ? FALSE : TRUE;
-    info->is_unicode = is_unicode;
-    info->is_autoinc = ((table_row->flags & COL_AUTOINC) != 0) ? TRUE : FALSE;
-
-    return info;
-}
-
 /* ----------------------------------------------------------------- */
 static void
 load_string (const GncSqlBackend* be, GncSqlRow* row,
@@ -1257,13 +1236,12 @@ add_string_col_info_to_list (const GncSqlBackend* be,
                              const GncSqlColumnTableEntry* table_row,
                              GList** pList)
 {
-    GncSqlColumnInfo* info;
-
     g_return_if_fail (be != NULL);
     g_return_if_fail (table_row != NULL);
     g_return_if_fail (pList != NULL);
 
-    info = create_column_info (table_row, BCT_STRING, table_row->size, TRUE);
+    auto info = new GncSqlColumnInfo{table_row, BCT_STRING,
+                                     table_row->size, TRUE};
 
     *pList = g_list_append (*pList, info);
 }
@@ -1368,13 +1346,11 @@ add_int_col_info_to_list (const GncSqlBackend* be,
                           const GncSqlColumnTableEntry* table_row,
                           GList** pList)
 {
-    GncSqlColumnInfo* info;
-
     g_return_if_fail (be != NULL);
     g_return_if_fail (table_row != NULL);
     g_return_if_fail (pList != NULL);
 
-    info = create_column_info (table_row, BCT_INT, 0, FALSE);
+    auto info = new GncSqlColumnInfo{table_row, BCT_INT, 0, FALSE};
 
     *pList = g_list_append (*pList, info);
 }
@@ -1473,15 +1449,12 @@ add_boolean_col_info_to_list (const GncSqlBackend* be,
                               const GncSqlColumnTableEntry* table_row,
                               GList** pList)
 {
-    GncSqlColumnInfo* info;
-
     g_return_if_fail (be != NULL);
     g_return_if_fail (table_row != NULL);
     g_return_if_fail (pList != NULL);
 
-    info = create_column_info (table_row, BCT_INT, 0, FALSE);
-
-    *pList = g_list_append (*pList, info);
+    auto info = new GncSqlColumnInfo{table_row, BCT_INT, 0, FALSE};
+    *pList = g_list_append (*pList, static_cast<void*>(info));
 }
 
 static void
@@ -1570,13 +1543,10 @@ add_int64_col_info_to_list (const GncSqlBackend* be,
                             const GncSqlColumnTableEntry* table_row,
                             GList** pList)
 {
-    GncSqlColumnInfo* info;
-
     g_return_if_fail (be != NULL);
     g_return_if_fail (table_row != NULL);
     g_return_if_fail (pList != NULL);
-
-    info = create_column_info (table_row, BCT_INT64, 0, FALSE);
+    auto info = new GncSqlColumnInfo{table_row, BCT_INT64, 0, FALSE};
 
     *pList = g_list_append (*pList, info);
 }
@@ -1684,13 +1654,11 @@ add_double_col_info_to_list (const GncSqlBackend* be,
                              const GncSqlColumnTableEntry* table_row,
                              GList** pList)
 {
-    GncSqlColumnInfo* info;
-
     g_return_if_fail (be != NULL);
     g_return_if_fail (table_row != NULL);
     g_return_if_fail (pList != NULL);
 
-    info = create_column_info (table_row, BCT_DOUBLE, 0, FALSE);
+    auto info = new GncSqlColumnInfo{table_row, BCT_DOUBLE, 0, FALSE};
 
     *pList = g_list_append (*pList, info);
 }
@@ -1790,13 +1758,12 @@ add_guid_col_info_to_list (const GncSqlBackend* be,
                            const GncSqlColumnTableEntry* table_row,
                            GList** pList)
 {
-    GncSqlColumnInfo* info;
-
     g_return_if_fail (be != NULL);
     g_return_if_fail (table_row != NULL);
     g_return_if_fail (pList != NULL);
 
-    info = create_column_info (table_row, BCT_STRING, GUID_ENCODING_LENGTH, FALSE);
+    auto info = new GncSqlColumnInfo{table_row, BCT_STRING,
+                                GUID_ENCODING_LENGTH, FALSE};
 
     *pList = g_list_append (*pList, info);
 }
@@ -2009,13 +1976,12 @@ add_timespec_col_info_to_list (const GncSqlBackend* be,
                                const GncSqlColumnTableEntry* table_row,
                                GList** pList)
 {
-    GncSqlColumnInfo* info;
-
     g_return_if_fail (be != NULL);
     g_return_if_fail (table_row != NULL);
     g_return_if_fail (pList != NULL);
 
-    info = create_column_info (table_row, BCT_DATETIME, TIMESPEC_COL_SIZE, FALSE);
+    auto info = new GncSqlColumnInfo{table_row, BCT_DATETIME,
+                                TIMESPEC_COL_SIZE, FALSE};
 
     *pList = g_list_append (*pList, info);
 }
@@ -2161,13 +2127,11 @@ add_date_col_info_to_list (const GncSqlBackend* be,
                            const GncSqlColumnTableEntry* table_row,
                            GList** pList)
 {
-    GncSqlColumnInfo* info;
-
     g_return_if_fail (be != NULL);
     g_return_if_fail (table_row != NULL);
     g_return_if_fail (pList != NULL);
 
-    info = create_column_info (table_row, BCT_DATE, DATE_COL_SIZE, FALSE);
+    auto info = new GncSqlColumnInfo{table_row, BCT_DATE, DATE_COL_SIZE, FALSE};
 
     *pList = g_list_append (*pList, info);
 }
@@ -2296,7 +2260,6 @@ add_numeric_col_info_to_list (const GncSqlBackend* be,
                               const GncSqlColumnTableEntry* table_row,
                               GList** pList)
 {
-    GncSqlColumnInfo* info;
     gchar* buf;
     const GncSqlColumnTableEntry* subtable_row;
 
@@ -2308,13 +2271,10 @@ add_numeric_col_info_to_list (const GncSqlBackend* be,
          subtable_row++)
     {
         buf = g_strdup_printf ("%s_%s", table_row->col_name, subtable_row->col_name);
-        info = g_new0 (GncSqlColumnInfo, 1);
-        g_assert (info != NULL);
-        info->name = buf;
-        info->type = BCT_INT64;
-        info->is_primary_key = ((table_row->flags & COL_PKEY) != 0) ? TRUE : FALSE;
-        info->null_allowed = ((table_row->flags & COL_NNUL) != 0) ? FALSE : TRUE;
-        info->is_unicode = FALSE;
+        auto info = new GncSqlColumnInfo(buf, BCT_INT64, 0, false, false,
+                                         table_row->flags & COL_PKEY,
+                                         table_row->flags ^ COL_NNUL);
+
         *pList = g_list_append (*pList, info);
     }
 }
