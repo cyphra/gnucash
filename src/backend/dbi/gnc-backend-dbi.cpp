@@ -2349,19 +2349,20 @@ stmt_to_sql (GncSqlStatement* stmt)
 
 static void
 stmt_add_where_cond(GncSqlStatement* stmt, QofIdTypeConst type_name,
-                    gpointer obj, const GncSqlColumnTableEntry& table_row,
-                    GValue* value )
+                    gpointer obj, const PairVec& col_values)
 {
-    GncDbiSqlStatement* dbi_stmt = (GncDbiSqlStatement*)stmt;
-    gchar* buf;
-    gchar* value_str;
-
-    value_str = gnc_sql_get_sql_value (dbi_stmt->conn, value);
-    buf = g_strdup_printf (" WHERE %s = %s", table_row.col_name,
-                           value_str);
-    g_free (value_str);
-    (void)g_string_append (dbi_stmt->sql, buf);
-    g_free (buf);
+    GncDbiSqlStatement* dbi_stmt = reinterpret_cast<GncDbiSqlStatement*>(stmt);
+    std::ostringstream sql;
+    sql << " WHERE ";
+    for (auto colpair : col_values)
+    {
+        if (colpair != *col_values.begin())
+            sql << " AND ";
+        sql << colpair.first << " = " <<
+            gnc_sql_connection_quote_string (dbi_stmt->conn,
+                                             colpair.second.c_str());
+    }
+    (void)g_string_append (dbi_stmt->sql, sql.str().c_str());
 }
 
 static GncSqlStatement*
@@ -2964,7 +2965,7 @@ conn_add_columns_to_table(GncSqlConnection* conn, const char* table_name,
 }
 
 static  gchar*
-conn_quote_string (const GncSqlConnection* conn, gchar* unquoted_str)
+conn_quote_string (const GncSqlConnection* conn, const char* unquoted_str)
 {
     GncDbiSqlConnection* dbi_conn = (GncDbiSqlConnection*)conn;
     gchar* quoted_str;
