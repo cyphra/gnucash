@@ -117,4 +117,18 @@ typedef struct
 
 } GncDbiSqlConnection;
 
+class GncDbiSqlRow : public GncSqlRow
+{
+public:
+    GncDbiSqlRow (dbi_result result) : m_result{result} {}
+    ~GncDbiSqlRow() = default;
+    int64_t get_int_at_col(const char*);
+    float get_float_at_col(const char*);
+    double get_double_at_col(const char*);
+    std::string get_string_at_col(const char*);
+    time64 get_time64_at_col(const char*);
+private:
+    dbi_result m_result;
+};
+
 #endif //GNC_BACKEND_DBI_PRIV_H
