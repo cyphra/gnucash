@@ -2183,25 +2183,6 @@ gnc_sql_execute_nonselect_sql (GncSqlBackend* be, const gchar* sql)
     return result;
 }
 
-static guint
-execute_statement_get_count (GncSqlBackend* be, GncSqlStatement* stmt)
-{
-    GncSqlResult* result;
-    guint count = 0;
-
-    g_return_val_if_fail (be != NULL, 0);
-    g_return_val_if_fail (stmt != NULL, 0);
-
-    result = gnc_sql_execute_select_statement (be, stmt);
-    if (result != NULL)
-    {
-        count = gnc_sql_result_get_num_rows (result);
-        gnc_sql_result_dispose (result);
-    }
-
-    return count;
-}
-
 guint
 gnc_sql_append_guid_list_to_sql (GString* sql, GList* list, guint maxCount)
 {
@@ -2231,44 +2212,6 @@ gnc_sql_append_guid_list_to_sql (GString* sql, GList* list, guint maxCount)
     return count;
 }
 /* ================================================================= */
-
-gboolean
-gnc_sql_object_is_it_in_db (GncSqlBackend* be, const gchar* table_name,
-                            QofIdTypeConst obj_name, gpointer pObject,
-                            const EntryVec& table)
-{
-    GncSqlStatement* sqlStmt;
-    guint count;
-    GncSqlColumnTypeHandler* pHandler;
-    PairVec values;
-
-    g_return_val_if_fail (be != NULL, FALSE);
-    g_return_val_if_fail (table_name != NULL, FALSE);
-    g_return_val_if_fail (obj_name != NULL, FALSE);
-    g_return_val_if_fail (pObject != NULL, FALSE);
-
-    /* SELECT * FROM */
-    sqlStmt = create_single_col_select_statement (be, table_name, table[0]);
-    g_assert (sqlStmt != NULL);
-
-    /* WHERE */
-    pHandler = get_handler (table[0]);
-    g_assert (pHandler != NULL);
-    pHandler->add_value_to_vec_fn (be, obj_name, pObject, table[0], values);
-    PairVec col_values {values[0]};
-    gnc_sql_statement_add_where_cond (sqlStmt, obj_name, pObject, col_values);
-
-    count = execute_statement_get_count (be, sqlStmt);
-    gnc_sql_statement_dispose (sqlStmt);
-    if (count == 0)
-    {
-        return FALSE;
-    }
-    else
-    {
-        return TRUE;
-    }
-}
 
 gboolean
 gnc_sql_do_db_operation (GncSqlBackend* be,

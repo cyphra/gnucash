@@ -300,15 +300,23 @@ create_tables(const OBEEntry& entry, GncDbiBackend* be)
 static void
 sqlite3_error_fn (dbi_conn conn, void* user_data)
 {
+    const int SQLITE3_DUPLICATE_KEY = 19;
     const gchar* msg;
     GncDbiBackend *be = static_cast<decltype(be)>(user_data);
 /* FIXME: Cast won't be necessary once GncDbiSqlConnection is a derived class of
  * GncSqlConnection. */
-    GncDbiSqlConnection *dbi_conn =
-        reinterpret_cast<decltype(dbi_conn)>(be->sql_be.conn);
-    (void)dbi_conn_error(conn, &msg);
-    PERR( "DBI error: %s\n", msg );
-    gnc_dbi_set_error(dbi_conn, ERR_BACKEND_MISC, 0, FALSE);
+    GncDbiSqlConnection *dbi_conn = reinterpret_cast<decltype(dbi_conn)>(be->sql_be.conn);
+    int errnum = dbi_conn_error (conn, &msg);
+    if (errnum != SQLITE3_DUPLICATE_KEY)
+    {
+        PERR ("DBI error: %s\n", msg);
+        gnc_dbi_set_error (dbi_conn, ERR_BACKEND_MISC, 0, FALSE);
+    }
+    else
+    {
+        dbi_conn->retry = false;
+        gnc_dbi_set_error (dbi_conn, ERR_BACKEND_DUPLICATE_KEY, 0, FALSE);
+    }
 }
 
 static void
@@ -554,6 +562,11 @@ mysql_error_fn (dbi_conn conn, void* user_data)
             if (dbi_conn)
                 gnc_dbi_set_error (dbi_conn, ERR_BACKEND_CANT_CONNECT, 0, FALSE);
             dbi_conn->conn_ok = FALSE;
+        }
+        else if (err_num == 1062) // Duplicate key
+        {
+            dbi_conn->retry = false;
+            gnc_dbi_set_error (dbi_conn, ERR_BACKEND_DUPLICATE_KEY, 0, false);
         }
         else
         {
@@ -1162,7 +1175,7 @@ pgsql_error_fn (dbi_conn conn, void* user_data)
     const guint backoff_usecs = 1000;
 #endif
 
-    (void)dbi_conn_error (conn, &msg);
+    int errnum = dbi_conn_error (conn, &msg);
     if (g_str_has_prefix (msg, "FATAL:  database") &&
         g_str_has_suffix (msg, "does not exist\n"))
     {
@@ -1193,6 +1206,11 @@ pgsql_error_fn (dbi_conn conn, void* user_data)
                   DBI_MAX_CONN_ATTEMPTS);
             gnc_dbi_set_error (dbi_conn, ERR_BACKEND_CANT_CONNECT, 0, FALSE);
             dbi_conn->conn_ok = FALSE;
+        }
+        else if (dbi_conn && errnum == 0x23505) //Unique violation
+        {
+            dbi_conn->retry = false;
+            gnc_dbi_set_error (dbi_conn, ERR_BACKEND_DUPLICATE_KEY, 0, FALSE);
         }
         else
         {
@@ -2373,11 +2391,21 @@ conn_execute_nonselect_statement (GncSqlConnection* conn,
         result = dbi_conn_query (dbi_conn->conn, dbi_stmt->sql->str);
     }
     while (dbi_conn->retry);
-    if (result == NULL)
+    if (result == NULL && dbi_conn->last_error)
     {
-        PERR ("Error executing SQL %s\n", dbi_stmt->sql->str);
-        return -1;
+        if (dbi_conn->last_error == ERR_BACKEND_DUPLICATE_KEY)
+        {
+            gnc_dbi_set_error(dbi_conn, ERR_BACKEND_NO_ERR, 0, false);
+            return 0;
+        }
+        else
+        {
+            PERR ("Error executing SQL %s\n", dbi_stmt->sql->str);
+            return -1;
+        }
     }
+    if (!result)
+        return 0;
     num_rows = (gint)dbi_result_get_numrows_affected (result);
     status = dbi_result_free (result);
     if (status < 0)

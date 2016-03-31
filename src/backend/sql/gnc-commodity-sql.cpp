@@ -60,7 +60,7 @@ static void set_quote_source_name (gpointer pObject,  gpointer pValue);
 
 static const EntryVec col_table
 {
-    { "guid",         CT_GUID,    0,                             COL_NNUL | COL_PKEY, "guid" },
+    { "guid",         CT_GUID,    0,                             COL_NNUL | COL_PKEY | COL_UNIQUE, "guid" },
     {
         "namespace",    CT_STRING,  COMMODITY_MAX_NAMESPACE_LEN,   COL_NNUL,          NULL, NULL,
         (QofAccessFunc)gnc_commodity_get_namespace,
@@ -234,30 +234,13 @@ commit_commodity (GncSqlBackend* be, QofInstance* inst)
     return do_commit_commodity (be, inst, FALSE);
 }
 
-static gboolean
-is_commodity_in_db (GncSqlBackend* be, gnc_commodity* pCommodity)
-{
-    g_return_val_if_fail (be != NULL, FALSE);
-    g_return_val_if_fail (pCommodity != NULL, FALSE);
-
-    return gnc_sql_object_is_it_in_db (be, COMMODITIES_TABLE, GNC_ID_COMMODITY,
-                                       pCommodity, col_table);
-}
-
 gboolean
 gnc_sql_save_commodity (GncSqlBackend* be, gnc_commodity* pCommodity)
 {
-    gboolean is_ok = TRUE;
-
     g_return_val_if_fail (be != NULL, FALSE);
     g_return_val_if_fail (pCommodity != NULL, FALSE);
 
-    if (!is_commodity_in_db (be, pCommodity))
-    {
-        is_ok = do_commit_commodity (be, QOF_INSTANCE (pCommodity), TRUE);
-    }
-
-    return is_ok;
+    return do_commit_commodity (be, QOF_INSTANCE (pCommodity), TRUE);
 }
 
 void

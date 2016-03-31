@@ -558,22 +558,6 @@ void gnc_sql_load_object (const GncSqlBackend* be, GncSqlRow* row,
                           const EntryVec& table);
 
 /**
- * Checks whether an object is in the database or not.
- *
- * @param be SQL backend struct
- * @param table_name DB table name
- * @param obj_name QOF object type name
- * @param pObject Object to be checked
- * @param table DB table description
- * @return TRUE if the object is in the database, FALSE otherwise
- */
-gboolean gnc_sql_object_is_it_in_db (GncSqlBackend* be,
-                                     const gchar* table_name,
-                                     QofIdTypeConst obj_name,
-                                     const gpointer pObject,
-                                     const EntryVec& table );
-
-/**
  * Returns the version number for a DB table.
  *
  * @param be SQL backend struct
