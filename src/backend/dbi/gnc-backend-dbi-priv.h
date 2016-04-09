@@ -117,18 +117,43 @@ typedef struct
 
 } GncDbiSqlConnection;
 
-class GncDbiSqlRow : public GncSqlRow
+
+class GncDbiSqlResult : public GncSqlResult
 {
 public:
-    GncDbiSqlRow (dbi_result result) : m_result{result} {}
-    ~GncDbiSqlRow() = default;
-    int64_t get_int_at_col(const char*);
-    float get_float_at_col(const char*);
-    double get_double_at_col(const char*);
-    std::string get_string_at_col(const char*);
-    time64 get_time64_at_col(const char*);
+    GncDbiSqlResult(GncDbiSqlConnection* conn, dbi_result result) :
+        m_conn{conn}, m_dbi_result{result}, m_iter{this}, m_row{&m_iter},
+        m_sentinel{nullptr} {}
+    ~GncDbiSqlResult();
+    int dberror();
+    GncSqlRow& begin();
+    GncSqlRow& end() { return m_sentinel; }
+protected:
+    class IteratorImpl : public GncSqlResult::IteratorImpl
+        {
+        public:
+            ~IteratorImpl() = default;
+            IteratorImpl(GncDbiSqlResult* inst) : m_inst{inst} {}
+            virtual GncSqlRow& operator++();
+            virtual GncSqlRow& operator++(int) { return ++(*this); };
+            virtual GncSqlResult* operator*() { return m_inst; }
+            virtual int64_t get_int_at_col (const char* col) const;
+            virtual float get_float_at_col (const char* col) const;
+            virtual double get_double_at_col (const char* col) const;
+            virtual std::string get_string_at_col (const char* col)const;
+            virtual time64 get_time64_at_col (const char* col) const;
+        private:
+            GncDbiSqlResult* m_inst;
+        };
+
 private:
-    dbi_result m_result;
+    GncDbiSqlConnection* m_conn;
+    dbi_result m_dbi_result;
+    IteratorImpl m_iter;
+    GncSqlRow m_row;
+    GncSqlRow m_sentinel;
+
 };
+
 
 #endif //GNC_BACKEND_DBI_PRIV_H
